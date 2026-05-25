@@ -9,14 +9,14 @@ BRAND_EN = "Massage Korea"
 PHONE = "0508-202-4743"
 PHONE_TEL = "+82508202743"  # tel: 링크용 (0508-202-4743)
 
-# 사업자 정보 (E-E-A-T Trust 신호). 실제 값 수령 시 일괄 교체.
+# 사업자 정보 (E-E-A-T Trust 신호).
 COMPANY = {
-    "name": "마사지KOREA",
-    "ceo": "[대표자명]",
-    "biz_no": "[사업자등록번호]",
-    "address": "[사업장 주소]",
+    "name": "YH LAB",
+    "ceo": "김유환",
+    "biz_no": "815-26-00585",
+    "address": "경기도 파주시 청석로 268",
     "mail_order_no": "[통신판매업신고번호]",
-    "privacy_officer": "[개인정보보호책임자]",
+    "privacy_officer": "김유환",
     "email": "[대표 이메일]",
 }
 

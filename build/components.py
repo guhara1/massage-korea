@@ -369,7 +369,8 @@ def org_block():
         "name": BRAND, "legalName": COMPANY["name"], "url": DOMAIN,
         "email": COMPANY["email"], "telephone": PHONE,
         "address": {"@type": "PostalAddress", "addressCountry": "KR",
-                    "addressLocality": "서울", "streetAddress": COMPANY["address"]},
+                    "addressRegion": "경기도", "addressLocality": "파주시",
+                    "streetAddress": "청석로 268"},
         "sameAs": sns,
     }
 
