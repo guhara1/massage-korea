@@ -61,16 +61,30 @@ border-radius:14px;padding:8px;list-style:none;margin:6px 0 0;opacity:0;visibili
 .menu>li:hover .submenu,.menu>li.open .submenu{opacity:1;visibility:visible;transform:none}
 .submenu a{display:block;padding:9px 12px;font-size:13.5px;color:var(--muted);border-radius:9px}
 .submenu a:hover{color:var(--text);background:rgba(255,255,255,.05)}
-.cta-pill{background:var(--grad);color:#1a1206!important;font-weight:800;padding:10px 18px!important;border-radius:999px}
+.nav-cta{display:flex;align-items:center;gap:10px;flex:none}
+.cta-label{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.cta-pill{display:inline-flex;align-items:center;gap:7px;background:var(--grad);color:#1a1206!important;
+font-weight:800;padding:10px 16px;border-radius:999px;white-space:nowrap;transition:.25s}
+.cta-pill:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(201,138,107,.36)}
+.cta-pill svg{width:15px;height:15px;flex:none}
+.cta-pill .cta-txt{font-size:13px}
+.cta-pill b{font-size:14px;letter-spacing:-.01em}
 .toggle{display:none;background:none;border:1px solid var(--line);color:var(--text);font-size:20px;border-radius:10px;padding:6px 12px;cursor:pointer}
 @media(max-width:1100px){
 .toggle{display:block}
+.cta-label{display:none}
 .menu{position:fixed;inset:62px 0 auto 0;flex-direction:column;align-items:stretch;background:var(--bg);
-border-bottom:1px solid var(--line);padding:14px 24px;gap:2px;display:none}
+border-bottom:1px solid var(--line);padding:14px 24px;gap:2px;display:none;z-index:49}
 .menu.open{display:flex}
 .submenu{position:static;opacity:1;visibility:visible;transform:none;box-shadow:none;background:transparent;border:none;padding:0 0 0 12px;margin:0}
 .menu>li>a{padding:12px 8px;font-size:15px}
 }
+@media(max-width:560px){
+.cta-pill{padding:9px 13px;gap:6px}
+.cta-pill .cta-txt{display:none}
+.cta-pill b{font-size:13px}
+}
+@media(max-width:380px){.cta-pill b{display:none}.cta-pill{padding:9px 11px}}
 
 /* hero */
 .hero{position:relative;overflow:hidden}
@@ -251,9 +265,14 @@ def header() -> str:
     svc = "".join(f'<li><a href="/service/{s["slug"]}/">{s["name"]}</a></li>' for s in SERVICES)
     loc = "".join(f'<li><a href="/locations/{k}/">{v["name"]}</a></li>' for k, v in REGIONS.items())
     thr = "".join(f'<li><a href="/therapists/{t["slug"]}/">{t["name"]} 관리사</a></li>' for t in THERAPISTS)
+    phone_svg = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+                 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                 '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6'
+                 ' 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81'
+                 'a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57'
+                 ' 2.81.7A2 2 0 0 1 22 16.92z"/></svg>')
     return f"""<header><nav class="nav" aria-label="주 메뉴">
 <a class="brand" href="/" aria-label="{BRAND} 홈"><img src="/assets/logo.png" alt="{BRAND}" width="160" height="40" class="brand-logo" decoding="async" fetchpriority="high"></a>
-<button class="toggle" aria-expanded="false" aria-controls="primary-menu">☰</button>
 <ul id="primary-menu" class="menu">
 <li><a href="/service/" aria-haspopup="true">서비스</a><ul class="submenu">{svc}</ul></li>
 <li><a href="/locations/" aria-haspopup="true">지역</a><ul class="submenu">{loc}</ul></li>
@@ -261,8 +280,13 @@ def header() -> str:
 <li><a href="/pricing/">요금</a></li>
 <li><a href="/magazine/">매거진</a></li>
 <li><a href="/reviews/">후기</a></li>
-<li><a class="cta-pill" href="tel:{PHONE_TEL}">24시 예약</a></li>
-</ul></nav></header>"""
+</ul>
+<div class="nav-cta">
+<span class="cta-label">지금 예약하세요</span>
+<a class="cta-pill" href="tel:{PHONE_TEL}" aria-label="전화 예약 {PHONE}">{phone_svg}<span class="cta-txt">24시간 예약</span><b>{PHONE}</b></a>
+<button class="toggle" aria-expanded="false" aria-controls="primary-menu" aria-label="메뉴 열기">☰</button>
+</div>
+</nav></header>"""
 
 
 def footer() -> str:
