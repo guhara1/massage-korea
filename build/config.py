@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """사이트 전역 설정. 도메인·브랜드·사업자 정보 단일 출처."""
 
-# 도메인: 미정 → 플레이스홀더. 확정 시 이 값만 교체하면 canonical/OG/sitemap 전체 반영.
-DOMAIN = "https://example.com"
+# 도메인: Cloudflare Pages 배포 주소. 커스텀 도메인 확정 시 이 값만 교체.
+DOMAIN = "https://massage-korea.pages.dev"
 
 BRAND = "마사지KOREA"
 BRAND_EN = "Massage Korea"
