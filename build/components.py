@@ -49,6 +49,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(11,11,14,.82);backdrop-f
 .nav{max-width:1240px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;gap:20px}
 .brand{font-weight:800;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
 .brand b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-logo{height:40px;width:auto;display:block}
+.footer-logo{height:44px;width:auto;display:block}
+@media(max-width:560px){.brand-logo{height:34px}}
 .menu{display:flex;align-items:center;gap:4px;list-style:none;margin:0;padding:0}
 .menu>li{position:relative}
 .menu>li>a{display:block;padding:10px 14px;font-size:14px;color:var(--muted);border-radius:10px;transition:.2s}
@@ -249,7 +252,7 @@ def header() -> str:
     loc = "".join(f'<li><a href="/locations/{k}/">{v["name"]}</a></li>' for k, v in REGIONS.items())
     thr = "".join(f'<li><a href="/therapists/{t["slug"]}/">{t["name"]} 관리사</a></li>' for t in THERAPISTS)
     return f"""<header><nav class="nav" aria-label="주 메뉴">
-<a class="brand" href="/" aria-label="{BRAND} 홈">마사지<b>KOREA</b></a>
+<a class="brand" href="/" aria-label="{BRAND} 홈"><img src="/assets/logo.png" alt="{BRAND}" width="160" height="40" class="brand-logo" decoding="async" fetchpriority="high"></a>
 <button class="toggle" aria-expanded="false" aria-controls="primary-menu">☰</button>
 <ul id="primary-menu" class="menu">
 <li><a href="/service/" aria-haspopup="true">서비스</a><ul class="submenu">{svc}</ul></li>
@@ -268,8 +271,8 @@ def footer() -> str:
     c = COMPANY
     return f"""<footer class="site-footer"><div class="footer-wrap">
 <div class="footer-grid">
-<div><div class="footer-brand">마사지<b>KOREA</b></div>
-<p style="margin-top:12px">서울·경기·인천·부산 출장 마사지.<br>본사 디스패처가 직접 배차하는<br>연중무휴 24시간 예약 서비스.</p></div>
+<div><img src="/assets/logo.png" alt="{BRAND}" width="176" height="44" class="footer-logo" decoding="async" loading="lazy">
+<p style="margin-top:14px">서울·경기·인천·부산 출장 마사지.<br>본사 디스패처가 직접 배차하는<br>연중무휴 24시간 예약 서비스.</p></div>
 <div><h4>서비스</h4>{svc}</div>
 <div><h4>지역</h4>{loc}</div>
 <div><h4>안내</h4>

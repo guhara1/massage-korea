@@ -33,6 +33,7 @@ def main():
     for a in pages.ARTICLES:
         pages.build_article(a)
     pages.build_policies()
+    pages.build_404()
     pages.build_meta_files()
     minify.run(pages.OUT)
 

@@ -53,8 +53,33 @@ def add_monogram(img, text="M"):
     return img
 
 
+def make_logo(mark):
+    """가로형 워드마크: 좌측 원형 마크 + '마사지KOREA'. 480x120 고정 비율(4:1)."""
+    KO = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+    W, H = 480, 120
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    m = mark.resize((H, H), Image.LANCZOS)
+    img.paste(m, (0, 0), m)
+    d = ImageDraw.Draw(img)
+    text = "마사지KOREA"
+    size = 70
+    font = ImageFont.truetype(KO, size)
+    x0 = H + 18
+    while True:
+        bb = d.textbbox((0, 0), text, font=font)
+        if bb[2] - bb[0] <= W - x0 - 8 or size <= 40:
+            break
+        size -= 2
+        font = ImageFont.truetype(KO, size)
+    bb = d.textbbox((0, 0), text, font=font)
+    ty = (H - (bb[3] - bb[1])) / 2 - bb[1]
+    d.text((x0 - bb[0], ty), text, font=font, fill=(244, 210, 156, 255))
+    img.save(os.path.join(OUT, "assets", "logo.png"))
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    os.makedirs(os.path.join(OUT, "assets"), exist_ok=True)
 
     # favicon.svg (vector, 의존성 0)
     svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -67,6 +92,7 @@ def main():
     open(os.path.join(OUT, "favicon.svg"), "w", encoding="utf-8").write(svg)
 
     base = add_monogram(radial_icon(512), "M")
+    make_logo(base)
     base.save(os.path.join(OUT, "icon-512.png"))
     base.resize((192, 192), Image.LANCZOS).save(os.path.join(OUT, "icon-192.png"))
     base.resize((180, 180), Image.LANCZOS).save(os.path.join(OUT, "apple-touch-icon.png"))

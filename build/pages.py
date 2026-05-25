@@ -8,7 +8,7 @@ from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
 from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME
 from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL
 from magazine import ARTICLES
-from components import (page, url, jsonld, org_block, breadcrumb, faq_block)
+from components import (page, head, footer, js, url, jsonld, org_block, breadcrumb, faq_block)
 
 _TEAM_ROLE = {m["name"]: m["role"] for m in TEAM}
 
@@ -74,6 +74,31 @@ def cta_band(heading="오늘 밤, 가까운 관리사를 배차해 드립니다"
             f'<p class="lead" style="margin:0 auto 26px">{HOURS} · 지역과 코스만 알려주시면 본사 디스패처가 안내합니다.</p>'
             f'<a class="btn btn-primary" href="tel:{PHONE_TEL}">전화로 예약하기 →</a>'
             f'</div></div></section>')
+
+
+REVIEW_NOTICE = ('<p style="font-size:12.5px;color:var(--dim);margin-top:8px">'
+                 '※ 아래 후기는 서비스 이해를 돕기 위한 예시이며, 실제 이용 후기가 확보되는 대로 교체됩니다.</p>')
+
+
+def related_block(label, heading, items):
+    """items: [(제목, 설명, url), ...] — 교차 내부 링크 카드."""
+    cards = "".join(
+        f'<a class="card reveal" href="{u}" style="padding:18px 20px">'
+        f'<h3 style="font-size:16px;margin:0">{t}</h3>'
+        f'<p style="margin-top:4px">{d}</p></a>'
+        for t, d, u in items)
+    return (f'<section class="wrap" style="padding-top:48px;padding-bottom:0">'
+            f'<div class="section-label">{label}</div><h2>{heading}</h2>'
+            f'<div class="grid g4" style="margin-top:24px">{cards}</div></section>')
+
+
+def services_links():
+    return [(s["name"], s["tagline"], f'/service/{s["slug"]}/') for s in SERVICES]
+
+
+def metros_links():
+    return [(f'{v["name"]} 출장마사지', f'{len(v["districts"])}개 권역', f'/locations/{k}/')
+            for k, v in REGIONS.items()]
 
 
 def breadcrumb_html(items):
@@ -151,7 +176,7 @@ def build_home():
 <a class="btn btn-primary" href="tel:{PHONE_TEL}">지금 예약하기 →</a>
 <a class="btn btn-ghost" href="/service/">코스 둘러보기</a>
 </div>
-<div class="trust">★★★★★ <b>4.9</b> · 누적 후기 다수 · {HOURS} · 도착 {AVG_ARRIVAL}</div>
+<div class="trust"><b>{HOURS}</b> · 도착 {AVG_ARRIVAL} · 서울·경기·인천·부산 직접 배차</div>
 </div>
 <div class="hero-visual">
 <div class="floating fl-1">LIVE · 방금 강남구 예약 접수</div>
@@ -162,7 +187,7 @@ def build_home():
 <div class="book-row"><span>운영</span><span>24시간</span></div>
 <a class="bk" href="tel:{PHONE_TEL}">전화 예약 →</a>
 </div>
-<div class="floating fl-2">CUSTOMER RATING · ★4.9</div>
+<div class="floating fl-2">24/7 · 본사 디스패처 직접 배차</div>
 </div>
 </div></section>
 
@@ -189,7 +214,8 @@ def build_home():
 
 <section class="wrap" id="reviews" style="padding-top:0">
 <div class="section-label">CLIENT VOICES</div><h2>이용 후기</h2>
-<div class="grid g3" style="margin-top:32px">{rv_html}</div>
+{REVIEW_NOTICE}
+<div class="grid g3" style="margin-top:24px">{rv_html}</div>
 </section>
 
 <section class="wrap" id="about" style="padding-top:0">
@@ -216,8 +242,7 @@ def build_home():
          "areaServed": [v["name_full"] for v in REGIONS.values()],
          "openingHoursSpecification": [{"@type": "OpeningHoursSpecification",
              "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
-             "opens": "00:00", "closes": "23:59"}],
-         "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "128"}},
+             "opens": "00:00", "closes": "23:59"}]},
         {"@type": "Article", "headline": "마사지KOREA 운영 소개 — Who·How·Why",
          "author": [{"@type": "Person", "name": m["name"], "jobTitle": m["role"]} for m in TEAM],
          "reviewedBy": {"@type": "Person", "name": TEAM[2]["name"], "jobTitle": TEAM[2]["role"]},
@@ -279,6 +304,7 @@ def build_service_detail(s):
 <div class="price-card" style="max-width:420px;margin-top:24px"><div class="kicker">{s["kicker"]}</div>
 <h3>{s["name"]}</h3><div class="time-rows">{rows}</div></div>
 </section>
+{related_block("SERVICE AREA", f"{s['name']}, 이 지역에서 받을 수 있어요", metros_links())}
 {faq_section(faq, heading=f"{s['name']} 자주 묻는 질문")}
 {cta_band()}"""
     title = f"{s['name']} 출장 마사지 — 요금·특징·추천 대상 | {BRAND}"
@@ -334,22 +360,16 @@ def build_reviews():
     body = f"""{breadcrumb_html([("홈","/"),("후기",None)])}
 <section class="wrap" style="padding-bottom:0">
 <div class="section-label">CLIENT VOICES</div><h2>이용 후기</h2>
-<p class="lead">실제 이용 후기를 정리했습니다. 권역·코스별 경험이 조금씩 다릅니다.</p>
-<div class="grid g3" style="margin-top:32px">{cards}</div>
+<p class="lead">권역·코스별 이용 경험을 정리했습니다.</p>
+{REVIEW_NOTICE}
+<div class="grid g3" style="margin-top:24px">{cards}</div>
 </section>
 {cta_band()}"""
-    title = f"이용 후기 — 실제 고객 경험 | {BRAND} 출장 마사지"
-    desc = f"{BRAND} 출장 마사지 이용 후기. 서울·경기·인천·부산 권역별, 코스별 실제 이용 경험을 모았습니다. 예약 {PHONE}."
-    reviews_ld = [{"@type": "Review", "reviewRating": {"@type": "Rating", "ratingValue": r, "bestRating": 5},
-                   "author": {"@type": "Person", "name": w}, "reviewBody": t}
-                  for w, c, r, t in data]
+    title = f"이용 후기 — 권역·코스별 경험 | {BRAND} 출장 마사지"
+    desc = f"{BRAND} 출장 마사지 이용 후기. 서울·경기·인천·부산 권역별, 코스별 이용 경험을 정리했습니다. 예약 {PHONE}."
     blocks = [
         breadcrumb([("홈","/"),("후기","/reviews/")]),
-        {"@type": "ItemList", "itemListElement": [
-            {"@type": "ListItem", "position": i+1, "item": rv}
-            for i, rv in enumerate(reviews_ld)]},
-        {"@type": "AggregateRating", "@id": url("/#business"), "ratingValue": "4.9",
-         "reviewCount": str(len(data)), "itemReviewed": {"@id": url("/#business")}},
+        org_block(),
     ]
     write("/reviews/", page(title, desc, "/reviews/", body, blocks), priority="0.8")
 
@@ -456,6 +476,7 @@ def build_metro_hub(key, v):
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
 <div class="section-label">PRICING</div><h2>요금</h2>
 <div style="margin-top:24px">{price_grid()}</div></section>
+{related_block("SERVICES", "코스 안내", services_links())}
 {faq_section(faq, heading=f"{name} 출장 마사지 자주 묻는 질문")}
 {cta_band(heading=f"{name} 어디든, 가까운 관리사를 배차합니다")}"""
     title = f"{name} 출장 마사지 — {name_full} 전 권역 24시간 예약 | {BRAND}"
@@ -586,16 +607,20 @@ def build_district(metro_key, metro, slug, dist_name):
 <div style="margin-top:24px">{price_grid()}</div></section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0" id="reviews">
 <div class="section-label">REVIEWS</div><h2>{dist_name} 이용 후기</h2>
+{REVIEW_NOTICE}
 <div class="grid g3" style="margin-top:24px">{rv_html}</div></section>
+{related_block("SERVICES", f"{dist_name}에서 받을 수 있는 코스", services_links())}
+<section class="wrap" style="padding-top:48px;padding-bottom:0">
+<div class="section-label">AREA</div><h2>같은 지역 더 보기</h2>
+<div class="grid g4" style="margin-top:24px">
+<a class="card reveal" href="/locations/{metro_key}/" style="padding:18px 20px"><h3 style="font-size:16px;margin:0">{metro_full} 전체</h3><p style="margin-top:4px">{len(metro["districts"])}개 권역</p></a>
+</div></section>
 {faq_section(faq, heading=f"{dist_name} 출장 마사지 자주 묻는 질문")}
 {cta_band(heading=f"{dist_name} 어디든, 가까운 관리사를 배차합니다")}"""
 
     title = f"{dist_name} 출장 마사지 — {metro_full} {dist_name} 24시간 예약 | {BRAND}"
     desc = f"{metro_full} {dist_name} 출장 마사지 {BRAND}. {', '.join(areas[:3])} 등 예상 평균 도착 약 {avg_dong}분, {HOURS}. 스웨디시·아로마·타이·로미로미·스포츠. 예약 {PHONE}."
     path = f"/locations/{metro_key}/{slug}/"
-    reviews_ld = [{"@type": "Review", "reviewRating": {"@type": "Rating", "ratingValue": r, "bestRating": 5},
-                   "author": {"@type": "Person", "name": w.split(" · ")[0]}, "reviewBody": t}
-                  for w, r, t in reviews]
     blocks = [
         breadcrumb([("홈","/"),("지역","/locations/"),(metro_full,f"/locations/{metro_key}/"),(dist_name,path)]),
         {"@type": "LocalBusiness", "name": f"{BRAND} {dist_name} 출장 마사지", "telephone": PHONE,
@@ -603,11 +628,7 @@ def build_district(metro_key, metro, slug, dist_name):
          "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"},
          "openingHoursSpecification": [{"@type": "OpeningHoursSpecification",
              "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
-             "opens": "00:00", "closes": "23:59"}],
-         "aggregateRating": {"@type": "AggregateRating",
-             "ratingValue": round(sum(r for _, r, _ in reviews)/len(reviews), 1),
-             "reviewCount": len(reviews)},
-         "review": reviews_ld},
+             "opens": "00:00", "closes": "23:59"}]},
         {"@type": "Service", "name": f"{dist_name} 출장 마사지", "provider": {"@id": url("/#org")},
          "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"}},
         faq_block(faq),
@@ -764,6 +785,27 @@ def build_policies():
     ])
 
 
+# ── 404 ────────────────────────────────────────────────────
+def build_404():
+    body = f"""<section class="wrap" style="text-align:center;min-height:46vh">
+<div class="section-label" style="color:var(--gold)">404</div>
+<h1 style="font-size:clamp(36px,6vw,64px)">페이지를 찾을 수 없습니다</h1>
+<p class="lead" style="margin:0 auto 26px">주소가 바뀌었거나 삭제된 페이지일 수 있습니다.</p>
+<div class="actions" style="justify-content:center">
+<a class="btn btn-primary" href="/">홈으로 →</a>
+<a class="btn btn-ghost" href="/locations/">지역 보기</a>
+<a class="btn btn-ghost" href="/service/">코스 보기</a>
+</div></section>"""
+    title = f"페이지를 찾을 수 없습니다 (404) | {BRAND}"
+    desc = "요청하신 페이지를 찾을 수 없습니다."
+    html = head(title, desc, "/404.html") + body + footer() + f"<script>{js()}</script></body></html>"
+    # noindex 추가
+    html = html.replace('<meta name="robots" content="index,follow',
+                        '<meta name="robots" content="noindex,follow')
+    with open(os.path.join(OUT, "404.html"), "w", encoding="utf-8") as f:
+        f.write(html)
+
+
 # ── robots / sitemap / manifest ────────────────────────────
 def build_meta_files():
     robots = f"""User-agent: *
@@ -783,8 +825,10 @@ Sitemap: {DOMAIN}/sitemap.xml
     with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(robots)
 
+    from datetime import date
+    today = date.today().isoformat()
     urls = "".join(
-        f"<url><loc>{DOMAIN}{p}</loc><changefreq>{cf}</changefreq><priority>{pr}</priority></url>"
+        f"<url><loc>{DOMAIN}{p}</loc><lastmod>{today}</lastmod><changefreq>{cf}</changefreq><priority>{pr}</priority></url>"
         for p, pr, cf in sorted(set(SITEMAP)))
     sitemap = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     with open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8") as f:
