@@ -361,7 +361,7 @@ def jsonld(blocks: list) -> str:
 
 
 def head(title: str, desc: str, path: str, jsonld_blocks=None,
-         og_image: str = "/assets/og-cover.jpg") -> str:
+         og_image: str = "/assets/og-cover.jpg", extra_head: str = "") -> str:
     canonical = url(path)
     og = url(og_image)
     ld = jsonld(jsonld_blocks or [])
@@ -376,6 +376,7 @@ def head(title: str, desc: str, path: str, jsonld_blocks=None,
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <meta name="author" content="{AUTHOR}">
+{extra_head}
 <link rel="canonical" href="{canonical}">
 <link rel="alternate" hreflang="ko-KR" href="{canonical}">
 <link rel="alternate" hreflang="x-default" href="{canonical}">
@@ -402,8 +403,8 @@ def head(title: str, desc: str, path: str, jsonld_blocks=None,
 {header()}"""
 
 
-def page(title, desc, path, body, jsonld_blocks=None, og_image="/assets/og-cover.jpg") -> str:
-    return (head(title, desc, path, jsonld_blocks, og_image)
+def page(title, desc, path, body, jsonld_blocks=None, og_image="/assets/og-cover.jpg", extra_head="") -> str:
+    return (head(title, desc, path, jsonld_blocks, og_image, extra_head)
             + body + footer()
             + f"<script>{js()}</script></body></html>")
 

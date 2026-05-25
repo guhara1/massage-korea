@@ -255,7 +255,9 @@ def build_home():
          "publisher": {"@id": url("/#org")}},
         faq_block(FAQ_HOME),
     ]
-    write("/", page(title, desc, "/", body, blocks), priority="1.0", changefreq="daily")
+    verify = ('<meta name="naver-site-verification" content="8434164622b0094ec6c9afbda868da5ac241e3d5">'
+              '<meta name="google-site-verification" content="TCklPAeaB9tdM03gH384AT9ZNxiSPSayw5azw0L4YmA">')
+    write("/", page(title, desc, "/", body, blocks, extra_head=verify), priority="1.0", changefreq="daily")
 
 
 # ── 서비스 인덱스 ──────────────────────────────────────────
