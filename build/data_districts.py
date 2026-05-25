@@ -103,6 +103,21 @@ PROFILES = {
     "busan/gijang": {"areas": ["기장읍", "정관읍", "일광읍"], "landmark": "정관 신도시·기장", "type": "suburb"},
 }
 
+# 2차 지역: 유흥가 밀집 핵심 권역만 leaf 페이지 생성 (도어웨이 회피 + 수요 집중)
+CORE_DISTRICTS = {
+    # 서울
+    "seoul/gangnam", "seoul/seocho", "seoul/mapo", "seoul/yongsan",
+    "seoul/gwangjin", "seoul/gwanak", "seoul/yeongdeungpo",
+    # 경기
+    "gyeonggi/suwon", "gyeonggi/seongnam", "gyeonggi/bucheon",
+    "gyeonggi/anyang", "gyeonggi/goyang", "gyeonggi/pyeongtaek",
+    # 인천
+    "incheon/bupyeong", "incheon/namdong", "incheon/michuhol",
+    # 부산
+    "busan/busanjin", "busan/haeundae", "busan/suyeong",
+    "busan/junggu", "busan/namgu", "busan/dongnae",
+}
+
 # 권역 유형별 콘텐츠 분기
 TYPE_INFO = {
     "biznight": {

@@ -6,7 +6,7 @@ import hashlib
 from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
                     TEAM, DATA_NOTE, COMPANY, AUTHOR)
 from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME
-from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL
+from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL, CORE_DISTRICTS
 from magazine import ARTICLES
 from components import (page, head, footer, js, url, jsonld, org_block, breadcrumb, faq_block)
 
@@ -446,11 +446,12 @@ def build_metro_hub(key, v):
     name, name_full = v["name"], v["name_full"]
     districts = v["districts"]
     cov = " · ".join(d[1] for d in districts)
+    core = [(slug, dname) for slug, dname in districts if f"{key}/{slug}" in CORE_DISTRICTS]
     cov_links = "".join(
         f'<a class="card reveal" href="/locations/{key}/{slug}/" style="padding:16px 18px">'
         f'<h3 style="font-size:16px;margin:0">{dname}</h3>'
         f'<p style="margin-top:4px">{PROFILES.get(f"{key}/{slug}",{}).get("landmark","출장 배차")}</p></a>'
-        for slug, dname in districts)
+        for slug, dname in core)
     faq = [
         (f"{name} 어디까지 출장이 되나요?",
          f"{name_full} {len(districts)}개 권역 전역에서 예약 가능합니다. 대상 권역: {cov}."),
@@ -475,9 +476,10 @@ def build_metro_hub(key, v):
 <div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE}</p></div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
-<div class="section-label">COVERAGE</div><h2>출장 권역 {len(districts)}곳</h2>
-<p class="lead">행정구를 선택하면 권역별 도착 시간·후기를 확인할 수 있습니다.</p>
+<div class="section-label">COVERAGE</div><h2>핵심 출장 권역</h2>
+<p class="lead">{name} 주요 번화가 권역은 별도 안내 페이지가 있습니다. 권역을 선택하면 예상 도착 시간·후기를 확인할 수 있습니다.</p>
 <div class="grid g4" style="margin-top:24px">{cov_links}</div>
+<p style="margin-top:20px;font-size:13.5px;color:var(--muted)">그 외 {name_full} 전 지역({cov})도 연중무휴 24시간 출장 가능합니다. 전화로 문의해 주세요.</p>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
 <div class="section-label">PRICING</div><h2>요금</h2>

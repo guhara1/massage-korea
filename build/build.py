@@ -6,6 +6,7 @@ import shutil
 import pages
 import minify
 from data import SERVICES, REGIONS, THERAPISTS
+from data_districts import CORE_DISTRICTS
 
 
 def main():
@@ -25,7 +26,8 @@ def main():
     for key, v in REGIONS.items():
         pages.build_metro_hub(key, v)
         for slug, dname in v["districts"]:
-            pages.build_district(key, v, slug, dname)
+            if f"{key}/{slug}" in CORE_DISTRICTS:
+                pages.build_district(key, v, slug, dname)
     pages.build_therapists_index()
     for t in THERAPISTS:
         pages.build_therapist_detail(t)
