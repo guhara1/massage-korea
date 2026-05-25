@@ -5,8 +5,8 @@ import os
 import hashlib
 from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
                     TEAM, DATA_NOTE, COMPANY, AUTHOR)
-from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME
-from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL, CORE_DISTRICTS
+from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME, METRO_CONTENT
+from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL, CORE_DISTRICTS, CORE_CONTENT
 from magazine import ARTICLES
 from components import (page, head, footer, js, url, jsonld, org_block, breadcrumb, faq_block)
 
@@ -460,16 +460,18 @@ def build_metro_hub(key, v):
         ("심야에도 예약이 되나요?",
          f"{HOURS}. 심야 시간대도 예약 가능하며 배차 상황에 따라 도착 시간이 달라질 수 있습니다."),
     ]
+    mc = METRO_CONTENT[key]
     notes = (
-        note("01", f"{name_full} 권역 특징", [f"{name_full}는 {v['character']} 특성을 보입니다.", f"본사 디스패처가 {len(districts)}개 권역을 직접 배차합니다.", "권역별 운영팀장이 응대를 책임집니다."])
-        + note("02", "배차와 도착 시간", [f"가장 가까운 관리사를 우선 배정합니다.", f"전체 평균 도착 시간은 {AVG_ARRIVAL}입니다.", "예약 시 해당 권역 예상 도착 시간을 안내드립니다."])
-        + note("03", "추천 코스", ["처음이시면 스웨디시, 강한 압을 원하면 스포츠를 권합니다.", "오일이 부담되면 건식인 타이가 적합합니다.", "코스별 특징은 서비스 페이지에서 확인할 수 있습니다."])
-        + note("04", "결제·예약 원칙", ["관리 시작 전 안내된 금액 그대로 결제합니다.", "시작 전 취소는 전액 환불됩니다.", "추가 비용은 발생하지 않습니다."]))
+        note("01", f"{name_full} 권역 성격", mc["character"])
+        + note("02", "시간대와 배차 특징", mc["timing"]
+               + [f"본사 디스패처가 가장 가까운 관리사를 우선 배정하며, 예약 시 해당 위치 예상 도착 시간을 안내드립니다."])
+        + note("03", "추천 코스와 이용 안내", mc["course"]
+               + ["관리 시작 전 안내된 금액 그대로 결제하고 시작 전 취소는 전액 환불되며, 코스별 요금은 요금 페이지에 공개되어 있습니다."]))
     body = f"""{breadcrumb_html([("홈","/"),("지역","/locations/"),(name_full,None)])}
 <section class="wrap" style="padding-bottom:0">
-<div class="section-label">{name_full.upper() if name_full.isascii() else name_full}</div>
+<div class="section-label">{name_full}</div>
 <h1 style="font-size:clamp(32px,5vw,56px)">{name} 출장 마사지</h1>
-<p class="lead">{name_full} {len(districts)}개 권역, 본사 디스패처 직접 배차. {AVG_ARRIVAL} 내 도착, {HOURS}.</p>
+<p class="lead">{mc['lead']}</p>
 <div class="trust" style="margin-top:18px">📍 도착 {AVG_ARRIVAL} · 🕛 24시간 · 🗺 {len(districts)}개 권역</div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">{notes}
@@ -546,69 +548,47 @@ def build_district(metro_key, metro, slug, dist_name):
         f'<p>"{t}"</p><div class="who">{w}</div></div>'
         for w, r, t in reviews)
 
-    overview = (
-        note("05", f"{dist_name} 동별 예상 도착 시간",
-             [f"{dist_name} 주요 생활권은 {', '.join(areas)} 등입니다.",
-              f"권역 내 예상 평균 도착은 약 {avg_dong}분이며, 동·시간대·교통 상황에 따라 달라집니다.",
-              "예약 시 해당 위치 기준 예상 도착 시간을 다시 안내드립니다."])
-        + note("06", "시간대별 콜 분포",
-               [f"{dist_name}는 {ti['label']} 성격을 보입니다.",
-                f"{ti['peak']}.",
-                "혼잡 시간대에는 도착이 다소 늦어질 수 있어 미리 예약을 권합니다."])
-        + note("07", "이 권역에 맞는 추천 코스",
-               [f"{ti['course']}.",
-                "처음이시면 부담이 적은 스웨디시부터 권합니다.",
-                "강도와 집중 부위는 예약 시 조율합니다."])
-        + note("08", "예약·결제·환불 한눈에",
-               ["전화 한 통으로 예약되며 관리 시작 전 안내 금액 그대로 결제합니다.",
-                "시작 전 취소는 전액 환불됩니다.",
-                "출장비·할증 여부는 예약 시 명확히 안내합니다."]))
+    cc = CORE_CONTENT[key]
 
-    field = (
-        note("01", f"{dist_name} 권역의 특징",
-             [f"{prof['landmark']}을(를) 중심으로 한 {ti['label']} 권역입니다.",
-              f"본사 디스패처가 {dist_name} 인근 관리사를 우선 배정합니다.",
-              f"{metro_name}권 운영팀장이 응대를 책임집니다."])
-        + note("02", "매니저 배치 및 도착 시간",
-               [f"{dist_name}와 인접 동을 묶어 가까운 순으로 배차합니다.",
-                f"예상 평균 도착은 약 {avg_dong}분입니다.",
-                "심야·우천 시에는 도착이 늦어질 수 있습니다."])
-        + note("03", "안전 가이드",
-               [f"안전·위생 기준은 자문 트레이너({TEAM[2]['name']}) 가이드라인을 따릅니다.",
-                "19세 미만은 이용할 수 없으며 본 서비스는 의료 행위가 아닙니다.",
-                "통증·질환이 있으시면 의료기관 상담을 먼저 권합니다."])
-        + note("04", "결제·예약 운영 원칙",
-               ["관리 시작 전 안내된 금액 그대로 결제합니다.",
-                "추가 비용은 발생하지 않습니다.",
-                "예약·문의는 전화로 가장 빠르게 처리됩니다."]))
+    sections = (
+        note("01", f"{dist_name} 권역 성격과 동선", cc["character"])
+        + note("02", f"{dist_name} 시간대별 방문 수요", cc["timing"])
+        + note("03", f"{dist_name} 추천 코스", cc["course"])
+        + note("04", "이동·접근 안내",
+               cc["access"] + [f"{dist_name}와 인접 동을 묶어 가까운 순으로 배차하며, 예상 평균 도착은 약 {avg_dong}분입니다."]))
+
+    policy_note = note("05", f"{dist_name} 예약·결제·안전 안내",
+        [f"{dist_name} 예약도 전화 한 통이면 끝나고, 관리 시작 전 안내된 금액 그대로 결제하며 표시 금액 외 추가 비용은 없습니다.",
+         "코스별 요금은 요금 페이지, 환불·이용 조건은 이용약관에 공개되어 있습니다.",
+         f"안전·위생 기준은 자문 트레이너({TEAM[2]['name']}) 가이드라인을 따르며, 19세 미만은 이용할 수 없습니다."])
 
     faq = [
-        (f"{dist_name} 출장 마사지 도착까지 얼마나 걸리나요?",
-         f"{dist_name} 권역 예상 평균은 약 {avg_dong}분입니다. {', '.join(areas)} 등 위치와 시간대에 따라 달라지며 예약 시 안내드립니다."),
-        (f"{dist_name} 심야에도 예약이 되나요?",
-         f"{HOURS}. {ti['peak']}. 심야 예약도 가능합니다."),
-        (f"{dist_name}에서 어떤 코스를 받을 수 있나요?",
-         "스웨디시·아로마·타이·로미로미·스포츠 5종 모두 가능합니다. " + ti["course"] + "."),
-        (f"{dist_name} 요금은 어떻게 되나요?",
-         "전 코스 60·90·120분 요금은 요금 페이지에 동일하게 공개되어 있으며 출장비는 예약 시 안내합니다."),
+        (f"{dist_name} 출장 마사지는 도착까지 얼마나 걸리나요?",
+         f"{', '.join(areas)} 등 {dist_name} 주요 생활권 기준 예상 평균 약 {avg_dong}분입니다. {cc['timing'][-1]} 위치·시간대에 따라 달라지며 예약 시 다시 안내드립니다."),
+        (f"{dist_name}은(는) 어떤 권역인가요?",
+         f"{cc['character'][0]}"),
+        (f"{dist_name}에서는 어떤 코스를 추천하나요?",
+         f"{cc['course'][0]} 스웨디시·아로마·타이·로미로미·스포츠 5종 모두 예약할 수 있고, 강도는 도착 후에도 조절할 수 있습니다."),
+        (f"{dist_name} 요금과 결제는 어떻게 되나요?",
+         "전 코스 60·90·120분 요금은 요금 페이지에 동일하게 공개되어 있고, 관리 시작 전 안내 금액 그대로 결제하며 시작 전 취소는 전액 환불됩니다."),
     ]
 
     body = f"""{breadcrumb_html([("홈","/"),("지역","/locations/"),(metro_full,f"/locations/{metro_key}/"),(dist_name,None)])}
 <section class="wrap" style="padding-bottom:0">
 <div class="section-label">{metro_full} {dist_name}</div>
 <h1 style="font-size:clamp(30px,4.6vw,52px)">{dist_name} 출장 마사지</h1>
-<p class="lead">{prof['landmark']} 권역, 본사 디스패처 직접 배차. {dist_name} 예상 평균 도착 약 {avg_dong}분, {HOURS}.</p>
-<div class="trust" style="margin-top:18px">📍 예상 {avg_dong}분 · 🕛 24시간 · 🏷 {ti['label']}</div>
+<p class="lead">{cc['lead']}</p>
+<div class="trust" style="margin-top:18px">📍 예상 {avg_dong}분 · 🕛 24시간 · 🏷 {cc['chip']}</div>
 <div class="price-card" style="max-width:360px;margin-top:28px"><div class="kicker">동별 예상 도착</div>
 <div class="time-rows">{rows}</div></div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
-<div class="section-label">OVERVIEW</div><h2>{dist_name} 운영 안내</h2>
-<div style="margin-top:24px">{overview}</div></section>
+<div class="section-label">AREA GUIDE</div><h2>{dist_name} 지역 안내</h2>
+<div style="margin-top:24px">{sections}</div></section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
-<div class="section-label">FIELD NOTES · 2026</div><h2>{dist_name} 필드 노트</h2>
-<div style="margin-top:24px">{field}</div>
-<div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE} 동별 예상 도착은 권역 평균을 기준으로 한 추정치이며 실시간 교통·배차 상황에 따라 달라집니다.</p></div>
+<div class="section-label">HOW IT WORKS</div><h2>{dist_name} 예약·운영 안내</h2>
+<div style="margin-top:24px">{policy_note}</div>
+<div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE} {dist_name}의 동별 예상 도착도 동일한 기준으로 산출한 값입니다.</p></div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
 <div class="section-label">PRICING</div><h2>요금</h2>
@@ -626,8 +606,8 @@ def build_district(metro_key, metro, slug, dist_name):
 {faq_section(faq, heading=f"{dist_name} 출장 마사지 자주 묻는 질문")}
 {cta_band(heading=f"{dist_name} 어디든, 가까운 관리사를 배차합니다")}"""
 
-    title = f"{dist_name} 출장 마사지 — {metro_full} {dist_name} 24시간 예약 | {BRAND}"
-    desc = f"{metro_full} {dist_name} 출장 마사지 {BRAND}. {', '.join(areas[:3])} 등 예상 평균 도착 약 {avg_dong}분, {HOURS}. 스웨디시·아로마·타이·로미로미·스포츠. 예약 {PHONE}."
+    title = cc["title"]
+    desc = cc["desc"]
     path = f"/locations/{metro_key}/{slug}/"
     blocks = [
         breadcrumb([("홈","/"),("지역","/locations/"),(metro_full,f"/locations/{metro_key}/"),(dist_name,path)]),
@@ -666,26 +646,27 @@ def build_therapists_index():
 def build_therapist_detail(t):
     faq = [
         (f"{t['name']} 관리사를 지정할 수 있나요?",
-         "선호를 말씀해 주시면 배차 상황에 맞춰 우선 배정합니다. 다만 시간대와 권역에 따라 배정이 달라질 수 있습니다."),
-        ("어떤 코스를 받을 수 있나요?",
-         "스웨디시·아로마·타이·로미로미·스포츠 5종 모두 예약 가능합니다."),
+         f"선호를 말씀해 주시면 배차 상황에 맞춰 우선 배정합니다. {t['comm']}"),
+        (f"{t['name']} 관리사는 어떤 코스에 잘 맞나요?",
+         f"{t['fit']} 5종 코스 모두 예약 가능합니다."),
         ("출장 지역은 어디까지인가요?",
-         "서울·경기·인천·부산 전 권역에서 예약할 수 있습니다."),
+         "서울·경기·인천·부산 전 권역에서 예약할 수 있으며, 가장 가까운 관리사를 우선 배정해 도착 시간을 줄입니다."),
     ]
     body = f"""{breadcrumb_html([("홈","/"),("관리사","/therapists/"),(t["name"]+" 관리사",None)])}
 <section class="wrap" style="padding-bottom:0">
 <div class="section-label">THERAPIST</div>
 <h1 style="font-size:clamp(32px,5vw,56px)">{t["name"]} 관리사</h1>
-<p class="lead">{t["desc"]}</p>
+<p class="lead">{t["desc"]} {t["strength"]}</p>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
-{note("01","특징",[t["desc"],"예약 시 강도와 집중 부위를 미리 확인합니다.","응대·위생 기준은 자문 트레이너 가이드라인을 따릅니다."])}
-{note("02","배정 방식",["선호 국적을 말씀하시면 배차 상황에 맞춰 우선 배정합니다.","가장 가까운 관리사를 우선해 도착 시간을 줄입니다.","19세 미만은 이용할 수 없습니다."])}
+{note("01","소통과 응대",[t["comm"]])}
+{note("02","강점과 잘 맞는 코스",[t["strength"], t["fit"]])}
+{note("03","배정·안전",[f"{t['name']} 관리사 선호를 말씀하시면 배차 상황에 맞춰 우선 배정하며, 가장 가까운 관리사를 우선해 도착 시간을 줄입니다.", f"안전·위생 기준은 자문 트레이너({TEAM[2]['name']}) 가이드라인을 따르며, 19세 미만은 이용할 수 없습니다."])}
 </section>
 {faq_section(faq, heading=f"{t['name']} 관리사 자주 묻는 질문")}
 {cta_band()}"""
-    title = f"{t['name']} 관리사 출장 마사지 — 배정·코스 안내 | {BRAND}"
-    desc = f"{t['name']} 관리사 출장 마사지 안내. {t['desc']} 서울·경기·인천·부산 예약 {PHONE}."
+    title = f"{t['name']} 관리사 출장 마사지 — 소통·강점·추천 코스 | {BRAND}"
+    desc = f"{t['name']} 관리사 출장 마사지 안내. {t['strength']} {t['fit']} 서울·경기·인천·부산 예약 {PHONE}."
     path = f"/therapists/{t['slug']}/"
     blocks = [breadcrumb([("홈","/"),("관리사","/therapists/"),(t["name"]+" 관리사",path)]),
               faq_block(faq), org_block()]
