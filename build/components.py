@@ -226,6 +226,21 @@ details>div{padding:0 22px 20px;color:#c8c8d0;font-size:14.5px;line-height:1.78}
 .footer-policies a{color:var(--muted)}.footer-policies a:hover{color:var(--text)}
 .footer-bottom{padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);line-height:1.7}
 
+/* 모바일 고정 전화 버튼 (오렌지 CTA) */
+.mobile-call{display:none}
+@media(max-width:780px){
+.mobile-call{display:flex;align-items:center;justify-content:center;gap:9px;
+position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:60;
+background:linear-gradient(135deg,#ff8c42,#f4690f);color:#fff!important;font-weight:800;font-size:16px;
+padding:15px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(244,105,15,.5);
+animation:callpulse 2.4s ease-in-out infinite}
+.mobile-call svg{width:19px;height:19px;flex:none}
+.mobile-call:active{transform:scale(.98)}
+body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+}
+@keyframes callpulse{0%,100%{box-shadow:0 8px 24px rgba(244,105,15,.45)}50%{box-shadow:0 10px 34px rgba(244,105,15,.75)}}
+@media(prefers-reduced-motion:reduce){.mobile-call{animation:none}}
+
 /* reveal */
 .reveal{opacity:0;transform:translateY(20px);transition:.8s}
 .reveal.in{opacity:1;transform:none}
@@ -325,7 +340,10 @@ def footer() -> str:
 본 서비스는 질병의 진단·치료를 목적으로 하지 않는 건강관리·이완 목적의 마사지 서비스입니다. 19세 미만 이용 불가.<br>
 © 2026 {BRAND}. All rights reserved.
 </div>
-</div></footer>"""
+</div></footer>
+<a class="mobile-call" href="tel:{PHONE_TEL}" aria-label="전화 예약 {PHONE}">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+<span>24시간 예약 · {PHONE}</span></a>"""
 
 
 def jsonld(blocks: list) -> str:
