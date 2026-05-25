@@ -219,12 +219,13 @@ details>div{padding:0 22px 20px;color:#c8c8d0;font-size:14.5px;line-height:1.78}
 .footer-ops{background:var(--grad-soft);border:1px solid rgba(244,210,156,.18);border-radius:16px;padding:20px 24px;margin-bottom:24px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:center}
 .footer-ops .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
 .footer-ops .v{font-size:14px;color:var(--text);font-weight:700}
-.company-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 24px;padding:22px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.company-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 24px;padding:22px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);font-style:normal}
 @media(max-width:720px){.company-info{grid-template-columns:1fr}}
 .company-info b{color:var(--text);font-weight:600}
-.footer-policies{display:flex;flex-wrap:wrap;gap:8px 18px;padding:18px 0;border-top:1px solid var(--line);font-size:13px}
-.footer-policies a{color:var(--muted)}.footer-policies a:hover{color:var(--text)}
-.footer-bottom{padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);line-height:1.7}
+.company-info .ftc{color:var(--gold);font-size:11.5px;margin-left:4px;text-decoration:underline}
+.footer-run{font-size:12px;color:var(--dim);margin-top:12px}
+.footer-bottom{padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);line-height:1.8}
+.footer-bottom a{color:var(--muted);text-decoration:underline}.footer-bottom a:hover{color:var(--text)}
 
 /* 모바일 고정 전화 버튼 (오렌지 CTA) */
 .mobile-call{display:none}
@@ -308,37 +309,39 @@ def footer() -> str:
     svc = "".join(f'<a href="/service/{s["slug"]}/">{s["name"]}</a>' for s in SERVICES)
     loc = "".join(f'<a href="/locations/{k}/">{v["name"]} 출장마사지</a>' for k, v in REGIONS.items())
     c = COMPANY
+    biz_digits = "".join(ch for ch in c["biz_no"] if ch.isdigit())
+    ftc = (f'<a class="ftc" href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no={biz_digits}"'
+           f' target="_blank" rel="noopener nofollow">사업자정보확인</a>') if len(biz_digits) == 10 else ""
     return f"""<footer class="site-footer"><div class="footer-wrap">
 <div class="footer-grid">
 <div><img src="/assets/logo.png" alt="{BRAND}" width="176" height="44" class="footer-logo" decoding="async" loading="lazy">
-<p style="margin-top:14px">서울·경기·인천·부산 출장 마사지.<br>본사 디스패처가 직접 배차하는<br>연중무휴 24시간 예약 서비스.</p></div>
+<p style="margin-top:14px">서울·경기·인천·부산 출장 마사지.<br>본사 디스패처가 직접 배차하는<br>연중무휴 24시간 예약 서비스입니다.</p>
+<p class="footer-run">운영 {BRAND} · {c["name"]}</p></div>
 <div><h4>서비스</h4>{svc}</div>
 <div><h4>지역</h4>{loc}</div>
-<div><h4>안내</h4>
-<a href="/pricing/">요금</a><a href="/magazine/">매거진</a><a href="/reviews/">이용 후기</a>
-<a href="/about/">회사 소개</a><a href="/contact/">연락처</a></div>
+<div><h4>회사·정책</h4>
+<a href="/about/">회사 소개</a><a href="/contact/">연락처</a>
+<a href="/magazine/">매거진</a><a href="/reviews/">이용 후기</a>
+<a href="/policy/privacy/"><b>개인정보처리방침</b></a><a href="/policy/terms/">이용약관</a>
+<a href="/policy/youth/">청소년보호정책</a></div>
 </div>
 <div class="footer-ops">
-<span class="lbl">운영</span><span class="v">{HOURS}</span>
-<span class="lbl">예약 전화</span><span class="v"><a href="tel:{PHONE_TEL}">{PHONE}</a></span>
-<span class="lbl">이메일</span><span class="v">{c["email"]}</span>
+<span class="lbl">예약·고객센터</span><span class="v"><a href="tel:{PHONE_TEL}">{PHONE}</a></span>
+<span class="lbl">운영시간</span><span class="v">{HOURS}</span>
+<span class="lbl">이메일</span><span class="v"><a href="mailto:{c["email"]}">{c["email"]}</a></span>
 </div>
-<div class="company-info">
-<span>회사명 <b>{c["name"]}</b></span>
+<address class="company-info">
+<span>상호 <b>{c["name"]}</b></span>
 <span>대표자 <b>{c["ceo"]}</b></span>
-<span>사업자등록번호 <b>{c["biz_no"]}</b></span>
-<span>주소 <b>{c["address"]}</b></span>
+<span>사업자등록번호 <b>{c["biz_no"]}</b> {ftc}</span>
 <span>통신판매업신고 <b>{c["mail_order_no"]}</b></span>
+<span>주소 <b>{c["address"]}</b></span>
 <span>개인정보보호책임자 <b>{c["privacy_officer"]}</b></span>
-</div>
-<div class="footer-policies">
-<a href="/policy/privacy/">개인정보처리방침</a>
-<a href="/policy/terms/">이용약관</a>
-<a href="/policy/youth/">청소년보호정책</a>
-</div>
+</address>
 <div class="footer-bottom">
-본 서비스는 질병의 진단·치료를 목적으로 하지 않는 건강관리·이완 목적의 마사지 서비스입니다. 19세 미만 이용 불가.<br>
-© 2026 {BRAND}. All rights reserved.
+본 서비스는 질병의 진단·치료를 목적으로 하지 않는 건강관리·이완 목적의 마사지 서비스이며, 의료 행위가 아닙니다. <b>19세 미만은 이용할 수 없습니다.</b><br>
+콘텐츠는 {BRAND} 운영팀이 작성하고 자문 트레이너가 안전 항목을 검수합니다. 운영 정책은 <a href="/about/">회사 소개</a>에서 확인할 수 있습니다.<br>
+© 2026 {BRAND} (운영: {c["name"]}). All rights reserved.
 </div>
 </div></footer>
 <a class="mobile-call" href="tel:{PHONE_TEL}" aria-label="전화 예약 {PHONE}">
