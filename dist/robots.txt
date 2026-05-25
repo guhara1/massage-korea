@@ -3,6 +3,17 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-Image
+Allow: /
+User-agent: Yeti
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: Daum
+Allow: /
+
 User-agent: GPTBot
 Allow: /
 User-agent: ClaudeBot
@@ -11,3 +22,5 @@ User-agent: Google-Extended
 Allow: /
 
 Sitemap: https://massagekorea.club/sitemap.xml
+Sitemap: https://massagekorea.club/sitemap1.xml
+Sitemap: https://massagekorea.club/rss.xml

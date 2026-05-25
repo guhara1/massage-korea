@@ -804,6 +804,17 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-Image
+Allow: /
+User-agent: Yeti
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: Daum
+Allow: /
+
 User-agent: GPTBot
 Allow: /
 User-agent: ClaudeBot
@@ -812,18 +823,48 @@ User-agent: Google-Extended
 Allow: /
 
 Sitemap: {DOMAIN}/sitemap.xml
+Sitemap: {DOMAIN}/sitemap1.xml
+Sitemap: {DOMAIN}/rss.xml
 """
     with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(robots)
 
-    from datetime import date
+    from datetime import date, datetime, timezone
     today = date.today().isoformat()
     urls = "".join(
         f"<url><loc>{DOMAIN}{p}</loc><lastmod>{today}</lastmod><changefreq>{cf}</changefreq><priority>{pr}</priority></url>"
         for p, pr, cf in sorted(set(SITEMAP)))
     sitemap = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
-    with open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8") as f:
-        f.write(sitemap)
+    # sitemap.xml (네이버·공통) + sitemap1.xml (구글용, 동일 전체 URL)
+    for fn in ("sitemap.xml", "sitemap1.xml"):
+        with open(os.path.join(OUT, fn), "w", encoding="utf-8") as f:
+            f.write(sitemap)
+
+    # RSS 2.0 — 매거진 신규 콘텐츠 피드 (빠른 색인·콘텐츠 발견용)
+    def rfc822(d):
+        return datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    def esc(s):
+        return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    now822 = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    items = ""
+    for a in sorted(ARTICLES, key=lambda x: x["date"], reverse=True):
+        link = f"{DOMAIN}/magazine/{a['slug']}/"
+        items += (f"<item><title>{esc(a['title'])}</title><link>{link}</link>"
+                  f"<guid isPermaLink=\"true\">{link}</guid>"
+                  f"<dc:creator>{esc(a['author'])}</dc:creator>"
+                  f"<pubDate>{rfc822(a['date'])}</pubDate>"
+                  f"<description>{esc(a['desc'])}</description></item>")
+    rss = (f'<?xml version="1.0" encoding="UTF-8"?>'
+           f'<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" '
+           f'xmlns:atom="http://www.w3.org/2005/Atom">'
+           f'<channel><title>{esc(BRAND)} 매거진</title>'
+           f'<link>{DOMAIN}/magazine/</link>'
+           f'<atom:link href="{DOMAIN}/rss.xml" rel="self" type="application/rss+xml"/>'
+           f'<description>서울·경기·인천·부산 출장 마사지 {esc(BRAND)} 매거진 — 이용 가이드·코스 선택·안전 정보</description>'
+           f'<language>ko-KR</language><lastBuildDate>{now822}</lastBuildDate>'
+           f'{items}</channel></rss>')
+    with open(os.path.join(OUT, "rss.xml"), "w", encoding="utf-8") as f:
+        f.write(rss)
 
     manifest = {
         "name": BRAND, "short_name": "마사지KOREA",
