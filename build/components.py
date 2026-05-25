@@ -256,6 +256,7 @@ def header() -> str:
 <li><a href="/locations/" aria-haspopup="true">지역</a><ul class="submenu">{loc}</ul></li>
 <li><a href="/therapists/" aria-haspopup="true">관리사</a><ul class="submenu">{thr}</ul></li>
 <li><a href="/pricing/">요금</a></li>
+<li><a href="/magazine/">매거진</a></li>
 <li><a href="/reviews/">후기</a></li>
 <li><a class="cta-pill" href="tel:{PHONE_TEL}">24시 예약</a></li>
 </ul></nav></header>"""
@@ -272,7 +273,7 @@ def footer() -> str:
 <div><h4>서비스</h4>{svc}</div>
 <div><h4>지역</h4>{loc}</div>
 <div><h4>안내</h4>
-<a href="/pricing/">요금</a><a href="/reviews/">이용 후기</a>
+<a href="/pricing/">요금</a><a href="/magazine/">매거진</a><a href="/reviews/">이용 후기</a>
 <a href="/about/">회사 소개</a><a href="/contact/">연락처</a></div>
 </div>
 <div class="footer-ops">

@@ -28,6 +28,9 @@ def main():
     pages.build_therapists_index()
     for t in THERAPISTS:
         pages.build_therapist_detail(t)
+    pages.build_magazine_index()
+    for a in pages.ARTICLES:
+        pages.build_article(a)
     pages.build_policies()
     pages.build_meta_files()
 

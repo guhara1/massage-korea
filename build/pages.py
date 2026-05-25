@@ -7,7 +7,10 @@ from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
                     TEAM, DATA_NOTE, COMPANY, AUTHOR)
 from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME
 from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL
+from magazine import ARTICLES
 from components import (page, url, jsonld, org_block, breadcrumb, faq_block)
+
+_TEAM_ROLE = {m["name"]: m["role"] for m in TEAM}
 
 # 메트로별 도착 기준(분) — 동별 예상치 산출용 기준값
 METRO_BASE = {"seoul": 28, "gyeonggi": 35, "incheon": 33, "busan": 30}
@@ -658,6 +661,69 @@ def build_therapist_detail(t):
     blocks = [breadcrumb([("홈","/"),("관리사","/therapists/"),(t["name"]+" 관리사",path)]),
               faq_block(faq), org_block()]
     write(path, page(title, desc, path, body, blocks), priority="0.7")
+
+
+# ── 매거진 ─────────────────────────────────────────────────
+def build_magazine_index():
+    cards = "".join(
+        f'<a class="card reveal" href="/magazine/{a["slug"]}/"><div class="kicker">{a["date"]} · {a["author"]}</div>'
+        f'<h3>{a["title"]}</h3><p>{a["desc"]}</p><div class="arrow">읽기 →</div></a>'
+        for a in ARTICLES)
+    body = f"""{breadcrumb_html([("홈","/"),("매거진",None)])}
+<section class="wrap" style="padding-bottom:0">
+<div class="section-label">MAGAZINE</div><h2>매거진</h2>
+<p class="lead">운영 경험에서 정리한 가이드입니다. 처음 이용, 코스 선택, 안전 이용법을 다룹니다.</p>
+<div class="grid g3" style="margin-top:32px">{cards}</div>
+</section>
+{cta_band()}"""
+    title = f"매거진 — 출장 마사지 이용 가이드 | {BRAND}"
+    desc = f"{BRAND} 매거진. 출장 마사지 처음 이용법, 코스 선택 가이드, 안전 이용 체크리스트를 운영팀이 직접 정리했습니다."
+    blocks = [breadcrumb([("홈","/"),("매거진","/magazine/")]),
+              {"@type": "Blog", "name": f"{BRAND} 매거진", "publisher": {"@id": url("/#org")}},
+              org_block()]
+    write("/magazine/", page(title, desc, "/magazine/", body, blocks), priority="0.8")
+
+
+def build_article(a):
+    author_role = _TEAM_ROLE.get(a["author"], "운영팀")
+    rev_role = _TEAM_ROLE.get(a["reviewed_by"], "자문")
+    # TOC + 본문
+    toc, content = [], []
+    for i, (h, paras) in enumerate(a["sections"]):
+        aid = f"s{i+1}"
+        toc.append(f'<li><a href="#{aid}">{h}</a></li>')
+        ps = "".join(f"<p>{p}</p>" for p in paras)
+        content.append(f'<h2 id="{aid}" style="font-size:clamp(22px,3vw,30px);margin-top:40px">{h}</h2>'
+                       f'<div class="note-text" style="max-width:720px">{ps}</div>')
+    links = "".join(f'<a class="btn btn-ghost" href="{u}">{t} →</a>' for t, u in a["links"])
+    path = f"/magazine/{a['slug']}/"
+    body = f"""{breadcrumb_html([("홈","/"),("매거진","/magazine/"),(a["title"],None)])}
+<article class="wrap" style="padding-bottom:0">
+<div class="section-label">MAGAZINE</div>
+<h1 style="font-size:clamp(28px,4.4vw,48px)">{a["title"]}</h1>
+<p class="lead" style="margin-top:14px">{a["lead"]}</p>
+<div class="trust" style="margin-top:18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0">
+글 <b>{a["author"]}</b> · {author_role} &nbsp;|&nbsp; 검수 <b>{a["reviewed_by"]}</b> · {rev_role} &nbsp;|&nbsp; {a["date"]}
+</div>
+<nav class="databox reveal" aria-label="목차" style="margin-top:28px">
+<div class="section-label">목차</div>
+<ol style="margin:0;padding-left:20px;color:#c8c8d0;line-height:2">{''.join(toc)}</ol>
+</nav>
+<div style="margin-top:20px">{''.join(content)}</div>
+<div class="actions" style="margin:40px 0 0">{links}</div>
+</article>
+{cta_band()}"""
+    title = f"{a['title']} | {BRAND} 매거진"
+    blocks = [
+        breadcrumb([("홈","/"),("매거진","/magazine/"),(a["title"],path)]),
+        {"@type": "BlogPosting", "headline": a["title"], "description": a["desc"],
+         "datePublished": a["date"], "dateModified": a["date"],
+         "image": url("/assets/og-cover.jpg"), "mainEntityOfPage": url(path),
+         "author": {"@type": "Person", "name": a["author"], "jobTitle": author_role},
+         "reviewedBy": {"@type": "Person", "name": a["reviewed_by"], "jobTitle": rev_role},
+         "publisher": {"@id": url("/#org")}, "inLanguage": "ko-KR"},
+    ]
+    write(path, page(title, a["desc"], path, body, blocks), priority="0.7", changefreq="monthly")
 
 
 # ── 정책 페이지 ────────────────────────────────────────────
