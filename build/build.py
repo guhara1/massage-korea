@@ -4,6 +4,7 @@
 import os
 import shutil
 import pages
+import minify
 from data import SERVICES, REGIONS, THERAPISTS
 
 
@@ -33,6 +34,7 @@ def main():
         pages.build_article(a)
     pages.build_policies()
     pages.build_meta_files()
+    minify.run(pages.OUT)
 
     print(f"생성 완료: {len(pages.SITEMAP)} 페이지 → {pages.OUT}")
     for p, pr, cf in sorted(set(pages.SITEMAP)):
