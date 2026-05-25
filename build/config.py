@@ -15,9 +15,9 @@ COMPANY = {
     "ceo": "김유환",
     "biz_no": "815-26-00585",
     "address": "경기도 파주시 청석로 268",
-    "mail_order_no": "[통신판매업신고번호]",
+    "mail_order_no": "",
     "privacy_officer": "김유환",
-    "email": "[대표 이메일]",
+    "email": "help@massagetime.club",
 }
 
 # 운영 정보

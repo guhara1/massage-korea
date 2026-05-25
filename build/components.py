@@ -334,7 +334,6 @@ def footer() -> str:
 <span>상호 <b>{c["name"]}</b></span>
 <span>대표자 <b>{c["ceo"]}</b></span>
 <span>사업자등록번호 <b>{c["biz_no"]}</b> {ftc}</span>
-<span>통신판매업신고 <b>{c["mail_order_no"]}</b></span>
 <span>주소 <b>{c["address"]}</b></span>
 <span>개인정보보호책임자 <b>{c["privacy_officer"]}</b></span>
 </address>
