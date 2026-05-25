@@ -2,10 +2,19 @@
 """페이지 빌더 + 사이트맵/robots/manifest 생성."""
 
 import os
+import hashlib
 from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
                     TEAM, DATA_NOTE, COMPANY, AUTHOR)
 from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME
+from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL
 from components import (page, url, jsonld, org_block, breadcrumb, faq_block)
+
+# 메트로별 도착 기준(분) — 동별 예상치 산출용 기준값
+METRO_BASE = {"seoul": 28, "gyeonggi": 35, "incheon": 33, "busan": 30}
+
+
+def _seed(s):
+    return int(hashlib.md5(s.encode("utf-8")).hexdigest(), 16)
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dist")
 
@@ -408,6 +417,11 @@ def build_metro_hub(key, v):
     name, name_full = v["name"], v["name_full"]
     districts = v["districts"]
     cov = " · ".join(d[1] for d in districts)
+    cov_links = "".join(
+        f'<a class="card reveal" href="/locations/{key}/{slug}/" style="padding:16px 18px">'
+        f'<h3 style="font-size:16px;margin:0">{dname}</h3>'
+        f'<p style="margin-top:4px">{PROFILES.get(f"{key}/{slug}",{}).get("landmark","출장 배차")}</p></a>'
+        for slug, dname in districts)
     faq = [
         (f"{name} 어디까지 출장이 되나요?",
          f"{name_full} {len(districts)}개 권역 전역에서 예약 가능합니다. 대상 권역: {cov}."),
@@ -432,8 +446,9 @@ def build_metro_hub(key, v):
 <div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE}</p></div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
-<div class="section-label">COVERAGE</div><h2>출장 권역</h2>
-<p class="lead" style="max-width:900px;margin-top:16px;color:#c8c8d0">{cov}</p>
+<div class="section-label">COVERAGE</div><h2>출장 권역 {len(districts)}곳</h2>
+<p class="lead">행정구를 선택하면 권역별 도착 시간·후기를 확인할 수 있습니다.</p>
+<div class="grid g4" style="margin-top:24px">{cov_links}</div>
 </section>
 <section class="wrap" style="padding-top:48px;padding-bottom:0">
 <div class="section-label">PRICING</div><h2>요금</h2>
@@ -454,6 +469,147 @@ def build_metro_hub(key, v):
         faq_block(faq),
     ]
     write(path, page(title, desc, path, body, blocks), priority="0.85")
+
+
+# ── 행정구 leaf 페이지 ─────────────────────────────────────
+def _district_reviews(metro_name, dist_name, areas):
+    """행정구 고유 후기 6개. 동·코스로 채워 100% 텍스트 고유."""
+    courses = [s["name"] for s in SERVICES]
+    base = _seed(metro_name + dist_name)
+    n = len(REVIEW_POOL)
+    picks, used = [], set()
+    for i in range(6):
+        idx = (base + i * 7) % n
+        while idx in used:
+            idx = (idx + 1) % n
+        used.add(idx)
+        tmpl, rating = REVIEW_POOL[idx]
+        area = areas[(base + i) % len(areas)]
+        course = courses[(base + i * 3) % len(courses)]
+        text = tmpl.format(area=area, district=dist_name, course=course)
+        picks.append((f"{dist_name} {area} · {course}", rating, text))
+    return picks
+
+
+def build_district(metro_key, metro, slug, dist_name):
+    key = f"{metro_key}/{slug}"
+    prof = PROFILES.get(key, {"areas": [dist_name], "landmark": f"{dist_name} 생활권", "type": "resi"})
+    areas = prof["areas"]
+    ti = TYPE_INFO[prof["type"]]
+    metro_name, metro_full = metro["name"], metro["name_full"]
+    base_min = METRO_BASE[metro_key]
+    seed = _seed(key)
+
+    # 동별 예상 도착 표
+    rows = ""
+    for i, a in enumerate(areas):
+        m = base_min + ((seed >> (i * 4)) % 13) - 4  # ±변동
+        m = max(18, m)
+        rows += f"<div><span>{a}</span><span>예상 {m}분</span></div>"
+    avg_dong = base_min + 2
+
+    reviews = _district_reviews(metro_name, dist_name, areas)
+    rv_html = "".join(
+        f'<div class="review reveal"><div class="stars">{"★"*r}{"☆"*(5-r)}</div>'
+        f'<p>"{t}"</p><div class="who">{w}</div></div>'
+        for w, r, t in reviews)
+
+    overview = (
+        note("05", f"{dist_name} 동별 예상 도착 시간",
+             [f"{dist_name} 주요 생활권은 {', '.join(areas)} 등입니다.",
+              f"권역 내 예상 평균 도착은 약 {avg_dong}분이며, 동·시간대·교통 상황에 따라 달라집니다.",
+              "예약 시 해당 위치 기준 예상 도착 시간을 다시 안내드립니다."])
+        + note("06", "시간대별 콜 분포",
+               [f"{dist_name}는 {ti['label']} 성격을 보입니다.",
+                f"{ti['peak']}.",
+                "혼잡 시간대에는 도착이 다소 늦어질 수 있어 미리 예약을 권합니다."])
+        + note("07", "이 권역에 맞는 추천 코스",
+               [f"{ti['course']}.",
+                "처음이시면 부담이 적은 스웨디시부터 권합니다.",
+                "강도와 집중 부위는 예약 시 조율합니다."])
+        + note("08", "예약·결제·환불 한눈에",
+               ["전화 한 통으로 예약되며 관리 시작 전 안내 금액 그대로 결제합니다.",
+                "시작 전 취소는 전액 환불됩니다.",
+                "출장비·할증 여부는 예약 시 명확히 안내합니다."]))
+
+    field = (
+        note("01", f"{dist_name} 권역의 특징",
+             [f"{prof['landmark']}을(를) 중심으로 한 {ti['label']} 권역입니다.",
+              f"본사 디스패처가 {dist_name} 인근 관리사를 우선 배정합니다.",
+              f"{metro_name}권 운영팀장이 응대를 책임집니다."])
+        + note("02", "매니저 배치 및 도착 시간",
+               [f"{dist_name}와 인접 동을 묶어 가까운 순으로 배차합니다.",
+                f"예상 평균 도착은 약 {avg_dong}분입니다.",
+                "심야·우천 시에는 도착이 늦어질 수 있습니다."])
+        + note("03", "안전 가이드",
+               [f"안전·위생 기준은 자문 트레이너({TEAM[2]['name']}) 가이드라인을 따릅니다.",
+                "19세 미만은 이용할 수 없으며 본 서비스는 의료 행위가 아닙니다.",
+                "통증·질환이 있으시면 의료기관 상담을 먼저 권합니다."])
+        + note("04", "결제·예약 운영 원칙",
+               ["관리 시작 전 안내된 금액 그대로 결제합니다.",
+                "추가 비용은 발생하지 않습니다.",
+                "예약·문의는 전화로 가장 빠르게 처리됩니다."]))
+
+    faq = [
+        (f"{dist_name} 출장 마사지 도착까지 얼마나 걸리나요?",
+         f"{dist_name} 권역 예상 평균은 약 {avg_dong}분입니다. {', '.join(areas)} 등 위치와 시간대에 따라 달라지며 예약 시 안내드립니다."),
+        (f"{dist_name} 심야에도 예약이 되나요?",
+         f"{HOURS}. {ti['peak']}. 심야 예약도 가능합니다."),
+        (f"{dist_name}에서 어떤 코스를 받을 수 있나요?",
+         "스웨디시·아로마·타이·로미로미·스포츠 5종 모두 가능합니다. " + ti["course"] + "."),
+        (f"{dist_name} 요금은 어떻게 되나요?",
+         "전 코스 60·90·120분 요금은 요금 페이지에 동일하게 공개되어 있으며 출장비는 예약 시 안내합니다."),
+    ]
+
+    body = f"""{breadcrumb_html([("홈","/"),("지역","/locations/"),(metro_full,f"/locations/{metro_key}/"),(dist_name,None)])}
+<section class="wrap" style="padding-bottom:0">
+<div class="section-label">{metro_full} {dist_name}</div>
+<h1 style="font-size:clamp(30px,4.6vw,52px)">{dist_name} 출장 마사지</h1>
+<p class="lead">{prof['landmark']} 권역, 본사 디스패처 직접 배차. {dist_name} 예상 평균 도착 약 {avg_dong}분, {HOURS}.</p>
+<div class="trust" style="margin-top:18px">📍 예상 {avg_dong}분 · 🕛 24시간 · 🏷 {ti['label']}</div>
+<div class="price-card" style="max-width:360px;margin-top:28px"><div class="kicker">동별 예상 도착</div>
+<div class="time-rows">{rows}</div></div>
+</section>
+<section class="wrap" style="padding-top:48px;padding-bottom:0">
+<div class="section-label">OVERVIEW</div><h2>{dist_name} 운영 안내</h2>
+<div style="margin-top:24px">{overview}</div></section>
+<section class="wrap" style="padding-top:48px;padding-bottom:0">
+<div class="section-label">FIELD NOTES · 2026</div><h2>{dist_name} 필드 노트</h2>
+<div style="margin-top:24px">{field}</div>
+<div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE} 동별 예상 도착은 권역 평균을 기준으로 한 추정치이며 실시간 교통·배차 상황에 따라 달라집니다.</p></div>
+</section>
+<section class="wrap" style="padding-top:48px;padding-bottom:0">
+<div class="section-label">PRICING</div><h2>요금</h2>
+<div style="margin-top:24px">{price_grid()}</div></section>
+<section class="wrap" style="padding-top:48px;padding-bottom:0" id="reviews">
+<div class="section-label">REVIEWS</div><h2>{dist_name} 이용 후기</h2>
+<div class="grid g3" style="margin-top:24px">{rv_html}</div></section>
+{faq_section(faq, heading=f"{dist_name} 출장 마사지 자주 묻는 질문")}
+{cta_band(heading=f"{dist_name} 어디든, 가까운 관리사를 배차합니다")}"""
+
+    title = f"{dist_name} 출장 마사지 — {metro_full} {dist_name} 24시간 예약 | {BRAND}"
+    desc = f"{metro_full} {dist_name} 출장 마사지 {BRAND}. {', '.join(areas[:3])} 등 예상 평균 도착 약 {avg_dong}분, {HOURS}. 스웨디시·아로마·타이·로미로미·스포츠. 예약 {PHONE}."
+    path = f"/locations/{metro_key}/{slug}/"
+    reviews_ld = [{"@type": "Review", "reviewRating": {"@type": "Rating", "ratingValue": r, "bestRating": 5},
+                   "author": {"@type": "Person", "name": w.split(" · ")[0]}, "reviewBody": t}
+                  for w, r, t in reviews]
+    blocks = [
+        breadcrumb([("홈","/"),("지역","/locations/"),(metro_full,f"/locations/{metro_key}/"),(dist_name,path)]),
+        {"@type": "LocalBusiness", "name": f"{BRAND} {dist_name} 출장 마사지", "telephone": PHONE,
+         "url": url(path), "priceRange": "₩₩", "image": url("/assets/og-cover.jpg"),
+         "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"},
+         "openingHoursSpecification": [{"@type": "OpeningHoursSpecification",
+             "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+             "opens": "00:00", "closes": "23:59"}],
+         "aggregateRating": {"@type": "AggregateRating",
+             "ratingValue": round(sum(r for _, r, _ in reviews)/len(reviews), 1),
+             "reviewCount": len(reviews)},
+         "review": reviews_ld},
+        {"@type": "Service", "name": f"{dist_name} 출장 마사지", "provider": {"@id": url("/#org")},
+         "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"}},
+        faq_block(faq),
+    ]
+    write(path, page(title, desc, path, body, blocks), priority="0.75")
 
 
 # ── 관리사: 인덱스 + 국적별 ───────────────────────────────

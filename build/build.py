@@ -23,6 +23,8 @@ def main():
     pages.build_locations_index()
     for key, v in REGIONS.items():
         pages.build_metro_hub(key, v)
+        for slug, dname in v["districts"]:
+            pages.build_district(key, v, slug, dname)
     pages.build_therapists_index()
     for t in THERAPISTS:
         pages.build_therapist_detail(t)
