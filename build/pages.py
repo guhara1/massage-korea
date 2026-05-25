@@ -235,7 +235,7 @@ def build_home():
 {cta_band()}
 """
 
-    title = f"{BRAND} — 서울·경기·인천·부산 출장 마사지 | 24시간 예약 {PHONE}"
+    title = f"{BRAND} — 서울·경기·인천·부산 출장 마사지 24시 예약"
     desc = f"서울·경기·인천·부산 출장 마사지. 본사 직접 배차로 {AVG_ARRIVAL} 내 도착, 연중무휴 24시간 예약. {PHONE}"
     blocks = [
         org_block(),
