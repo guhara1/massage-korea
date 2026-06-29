@@ -8,7 +8,8 @@ from config import (DOMAIN, BRAND, PHONE, PHONE_TEL, HOURS, AVG_ARRIVAL,
 from data import SERVICES, THERAPISTS, REGIONS, FAQ_HOME, METRO_CONTENT
 from data_districts import PROFILES, TYPE_INFO, REVIEW_POOL, CORE_DISTRICTS, CORE_CONTENT
 from magazine import ARTICLES
-from components import (page, head, footer, js, url, jsonld, org_block, breadcrumb, faq_block)
+from components import (page, head, footer, js, url, jsonld, org_block, breadcrumb,
+                        faq_block, rating_block, review_block, with_reviews)
 
 _TEAM_ROLE = {m["name"]: m["role"] for m in TEAM}
 
@@ -99,6 +100,95 @@ def services_links():
 def metros_links():
     return [(f'{v["name"]} 출장마사지', f'{len(v["districts"])}개 권역', f'/locations/{k}/')
             for k, v in REGIONS.items()]
+
+
+# ── 롱테일 내부 링크 헬퍼 ──────────────────────────────────
+def core_district_items(metro_filter=None, exclude=None, anchor_suffix="출장 마사지"):
+    """핵심 행정구 카드 링크 목록. anchor_suffix로 롱테일 앵커를 조합한다.
+    예: ('강남구 스웨디시', '강남역·테헤란로 업무축', '/locations/seoul/gangnam/')."""
+    items = []
+    for mk, mv in REGIONS.items():
+        if metro_filter and mk != metro_filter:
+            continue
+        for slug, dname in mv["districts"]:
+            key = f"{mk}/{slug}"
+            if key not in CORE_DISTRICTS or key == exclude:
+                continue
+            landmark = PROFILES.get(key, {}).get("landmark", f"{dname} 핵심 생활권")
+            items.append((f"{dname} {anchor_suffix}", landmark, f"/locations/{mk}/{slug}/"))
+    return items
+
+
+def _district_nearby_items(metro_key, key, metro_full, districts):
+    """행정구 페이지의 '인접 지역' 카드: 광역 전체 + 같은 광역 핵심 구(자기 제외).
+    같은 광역 핵심 구가 적으면 타 광역 핵심 지역으로 보강한다."""
+    items = [(f"{metro_full} 전체", f"{len(districts)}개 권역", f"/locations/{metro_key}/")]
+    items += core_district_items(metro_filter=metro_key, exclude=key)
+    if len(items) < 5:
+        prefix = f"/locations/{metro_key}/"
+        extra = [it for it in core_district_items() if not it[2].startswith(prefix)]
+        items += extra[: 5 - len(items)]
+    return items[:8]
+
+
+def other_metros_items(exclude_key):
+    return [(f'{v["name"]} 출장마사지', f'{v["name_full"]} {len(v["districts"])}개 권역',
+             f'/locations/{k}/')
+            for k, v in REGIONS.items() if k != exclude_key]
+
+
+def therapists_links():
+    return [(f'{t["name"]} 관리사', t["desc"], f'/therapists/{t["slug"]}/') for t in THERAPISTS]
+
+
+# ── 후기 생성 (서비스·광역 페이지용, 표시 카드 = 스키마 1:1) ──
+def _area_pool(metro_filter=None):
+    """(동, 행정구명) 튜플 풀. 핵심 행정구 프로필의 areas에서 수집."""
+    pool = []
+    for mk, mv in REGIONS.items():
+        if metro_filter and mk != metro_filter:
+            continue
+        for slug, dname in mv["districts"]:
+            prof = PROFILES.get(f"{mk}/{slug}")
+            if not prof:
+                continue
+            for a in prof["areas"]:
+                pool.append((a, dname))
+    return pool
+
+
+def _gen_reviews(seed_key, area_pool, course=None, n=3):
+    """REVIEW_POOL 템플릿으로 고유 후기 n개 생성 → [(who, rating, text), ...]."""
+    courses = [s["name"] for s in SERVICES]
+    base = _seed(seed_key)
+    npool, nareas = len(REVIEW_POOL), len(area_pool)
+    picks, used = [], set()
+    for i in range(n):
+        idx = (base + i * 7) % npool
+        while idx in used:
+            idx = (idx + 1) % npool
+        used.add(idx)
+        tmpl, rating = REVIEW_POOL[idx]
+        area, dist = area_pool[(base + i) % nareas]
+        c = course or courses[(base + i * 3) % len(courses)]
+        text = tmpl.format(area=area, district=dist, course=c)
+        picks.append((f"{dist} {area} · {c}", rating, text))
+    return picks
+
+
+def reviews_html(reviews):
+    """[(who, rating, text), ...] → 후기 카드 HTML."""
+    return "".join(
+        f'<div class="review reveal"><div class="stars">{"★"*r}{"☆"*(5-r)}</div>'
+        f'<p>"{t}"</p><div class="who">{w}</div></div>'
+        for w, r, t in reviews)
+
+
+def reviews_section(reviews, heading):
+    """후기 섹션(라벨+제목+예시 고지+카드 그리드)."""
+    return (f'<section class="wrap" style="padding-top:48px;padding-bottom:0" id="reviews">'
+            f'<div class="section-label">REVIEWS</div><h2>{heading}</h2>{REVIEW_NOTICE}'
+            f'<div class="grid g3" style="margin-top:24px">{reviews_html(reviews)}</div></section>')
 
 
 def breadcrumb_html(items):
@@ -231,10 +321,12 @@ def build_home():
 <div class="databox reveal"><div class="section-label">DATA &amp; METHODOLOGY</div><p>{DATA_NOTE}</p></div>
 </section>
 
+{related_block("POPULAR AREAS", "지금 많이 찾는 출장 지역", core_district_items())}
 {faq_section(FAQ_HOME)}
 {cta_band()}
 """
 
+    home_reviews = [(w, 5, t) for w, t in reviews]
     title = f"{BRAND} — 서울·경기·인천·부산 출장 마사지 24시 예약"
     desc = f"서울·경기·인천·부산 출장 마사지. 본사 직접 배차로 {AVG_ARRIVAL} 내 도착, 연중무휴 24시간 예약. {PHONE}"
     blocks = [
@@ -253,6 +345,11 @@ def build_home():
          "author": [{"@type": "Person", "name": m["name"], "jobTitle": m["role"]} for m in TEAM],
          "reviewedBy": {"@type": "Person", "name": TEAM[2]["name"], "jobTitle": TEAM[2]["role"]},
          "publisher": {"@id": url("/#org")}},
+        with_reviews(
+            {"@type": "Service", "@id": url("/#service"), "name": f"{BRAND} 출장 마사지",
+             "serviceType": "출장 마사지", "provider": {"@id": url("/#org")},
+             "areaServed": [v["name_full"] for v in REGIONS.values()]},
+            home_reviews),
         faq_block(FAQ_HOME),
     ]
     verify = ('<meta name="naver-site-verification" content="8434164622b0094ec6c9afbda868da5ac241e3d5">'
@@ -272,6 +369,7 @@ def build_service_index():
 <p class="lead">5가지 코스를 운영합니다. 강도와 목적에 맞춰 선택하세요.</p>
 <div class="grid g3" style="margin-top:32px">{cards}</div>
 </section>
+{related_block("SERVICE AREA", "지역별로 코스 받기", metros_links())}
 {cta_band()}"""
     title = f"출장 마사지 코스 안내 — 스웨디시·아로마·타이·로미로미·스포츠 | {BRAND}"
     desc = f"{BRAND} 출장 마사지 5가지 코스 안내. 스웨디시·아로마·타이·로미로미·스포츠의 특징과 추천 대상, 요금을 정리했습니다. 예약 {PHONE}."
@@ -293,6 +391,7 @@ def build_service_detail(s):
          "아닙니다. 건강관리·이완 목적의 마사지이며 질병의 진단·치료를 목적으로 하지 않습니다."),
     ]
     rows = "".join(f"<div><span>{t}</span><span>{p}</span></div>" for t, p in s["prices"])
+    svc_reviews = _gen_reviews(f"svc/{s['slug']}", _area_pool(), course=s["name"], n=3)
     body = f"""{breadcrumb_html([("홈","/"),("서비스","/service/"),(s["name"],None)])}
 <section class="wrap" style="padding-bottom:0">
 <div class="section-label">{s["kicker"]}</div>
@@ -313,6 +412,8 @@ def build_service_detail(s):
 <h3>{s["name"]}</h3><div class="time-rows">{rows}</div></div>
 </section>
 {related_block("SERVICE AREA", f"{s['name']}, 이 지역에서 받을 수 있어요", metros_links())}
+{related_block("BY DISTRICT", f"{s['name']}를 많이 찾는 핵심 지역", core_district_items(anchor_suffix=s["name"])[:8])}
+{reviews_section(svc_reviews, f"{s['name']} 이용 후기")}
 {faq_section(faq, heading=f"{s['name']} 자주 묻는 질문")}
 {cta_band()}"""
     title = f"{s['name']} 출장 마사지 — 요금·특징·추천 대상 | {BRAND}"
@@ -320,11 +421,13 @@ def build_service_detail(s):
     path = f"/service/{s['slug']}/"
     blocks = [
         breadcrumb([("홈","/"),("서비스","/service/"),(s["name"],path)]),
-        {"@type": "Service", "name": f"{s['name']} 출장 마사지", "serviceType": s["name"],
-         "provider": {"@id": url("/#org")}, "areaServed": [v["name_full"] for v in REGIONS.values()],
-         "description": s["summary"],
-         "offers": [{"@type": "Offer", "name": f"{s['name']} {t}", "price": p.replace(",","").replace("원",""),
-                     "priceCurrency": "KRW"} for t, p in s["prices"]]},
+        with_reviews(
+            {"@type": "Service", "name": f"{s['name']} 출장 마사지", "serviceType": s["name"],
+             "provider": {"@id": url("/#org")}, "areaServed": [v["name_full"] for v in REGIONS.values()],
+             "description": s["summary"],
+             "offers": [{"@type": "Offer", "name": f"{s['name']} {t}", "price": p.replace(",","").replace("원",""),
+                         "priceCurrency": "KRW"} for t, p in s["prices"]]},
+            svc_reviews),
         faq_block(faq),
     ]
     write(path, page(title, desc, path, body, blocks), priority="0.8")
@@ -365,6 +468,7 @@ def build_reviews():
         f'<div class="review reveal"><div class="stars">{"★"*r}{"☆"*(5-r)}</div>'
         f'<p>"{t}"</p><div class="who">{w} · {c}</div></div>'
         for w, c, r, t in data)
+    rv_blocks = [(f"{w} · {c}", r, t) for w, c, r, t in data]
     body = f"""{breadcrumb_html([("홈","/"),("후기",None)])}
 <section class="wrap" style="padding-bottom:0">
 <div class="section-label">CLIENT VOICES</div><h2>이용 후기</h2>
@@ -372,11 +476,18 @@ def build_reviews():
 {REVIEW_NOTICE}
 <div class="grid g3" style="margin-top:24px">{cards}</div>
 </section>
+{related_block("BY SERVICE", "후기가 많은 코스", services_links())}
+{related_block("BY AREA", "권역별 후기 보기", core_district_items()[:8])}
 {cta_band()}"""
     title = f"이용 후기 — 권역·코스별 경험 | {BRAND} 출장 마사지"
     desc = f"{BRAND} 출장 마사지 이용 후기. 서울·경기·인천·부산 권역별, 코스별 이용 경험을 정리했습니다. 예약 {PHONE}."
     blocks = [
         breadcrumb([("홈","/"),("후기","/reviews/")]),
+        with_reviews(
+            {"@type": "Service", "name": f"{BRAND} 출장 마사지", "serviceType": "출장 마사지",
+             "provider": {"@id": url("/#org")},
+             "areaServed": [v["name_full"] for v in REGIONS.values()]},
+            rv_blocks),
         org_block(),
     ]
     write("/reviews/", page(title, desc, "/reviews/", body, blocks), priority="0.8")
@@ -437,6 +548,7 @@ def build_locations_index():
 <p class="lead">서울·경기·인천·부산 전 권역에서 예약 가능합니다.</p>
 <div class="grid g4" style="margin-top:32px">{cards}</div>
 </section>
+{related_block("POPULAR AREAS", "핵심 출장 지역 바로가기", core_district_items())}
 {cta_band()}"""
     title = f"출장 마사지 지역 안내 — 서울·경기·인천·부산 | {BRAND}"
     desc = f"{BRAND} 출장 마사지 가능 지역. 서울 25개 자치구, 경기 31개 시·군, 인천 10개 권역, 부산 16개 구·군. 예약 {PHONE}."
@@ -463,6 +575,7 @@ def build_metro_hub(key, v):
          f"{HOURS}. 심야 시간대도 예약 가능하며 배차 상황에 따라 도착 시간이 달라질 수 있습니다."),
     ]
     mc = METRO_CONTENT[key]
+    metro_reviews = _gen_reviews(f"metro/{key}", _area_pool(metro_filter=key), n=3)
     notes = (
         note("01", f"{name_full} 권역 성격", mc["character"])
         + note("02", "시간대와 배차 특징", mc["timing"]
@@ -489,6 +602,8 @@ def build_metro_hub(key, v):
 <div class="section-label">PRICING</div><h2>요금</h2>
 <div style="margin-top:24px">{price_grid()}</div></section>
 {related_block("SERVICES", "코스 안내", services_links())}
+{reviews_section(metro_reviews, f"{name} 이용 후기")}
+{related_block("NEARBY", "다른 지역도 출장 가능합니다", other_metros_items(key))}
 {faq_section(faq, heading=f"{name} 출장 마사지 자주 묻는 질문")}
 {cta_band(heading=f"{name} 어디든, 가까운 관리사를 배차합니다")}"""
     title = f"{name} 출장 마사지 — {name_full} 전 권역 24시간 예약 | {BRAND}"
@@ -502,6 +617,11 @@ def build_metro_hub(key, v):
          "openingHoursSpecification": [{"@type": "OpeningHoursSpecification",
              "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
              "opens": "00:00", "closes": "23:59"}]},
+        with_reviews(
+            {"@type": "Service", "name": f"{name} 출장 마사지", "serviceType": "출장 마사지",
+             "provider": {"@id": url("/#org")},
+             "areaServed": {"@type": "AdministrativeArea", "name": name_full}},
+            metro_reviews),
         faq_block(faq),
     ]
     write(path, page(title, desc, path, body, blocks), priority="0.85")
@@ -600,11 +720,7 @@ def build_district(metro_key, metro, slug, dist_name):
 {REVIEW_NOTICE}
 <div class="grid g3" style="margin-top:24px">{rv_html}</div></section>
 {related_block("SERVICES", f"{dist_name}에서 받을 수 있는 코스", services_links())}
-<section class="wrap" style="padding-top:48px;padding-bottom:0">
-<div class="section-label">AREA</div><h2>같은 지역 더 보기</h2>
-<div class="grid g4" style="margin-top:24px">
-<a class="card reveal" href="/locations/{metro_key}/" style="padding:18px 20px"><h3 style="font-size:16px;margin:0">{metro_full} 전체</h3><p style="margin-top:4px">{len(metro["districts"])}개 권역</p></a>
-</div></section>
+{related_block("NEARBY AREAS", f"{metro_name} 다른 핵심 지역", _district_nearby_items(metro_key, key, metro_full, metro["districts"]))}
 {faq_section(faq, heading=f"{dist_name} 출장 마사지 자주 묻는 질문")}
 {cta_band(heading=f"{dist_name} 어디든, 가까운 관리사를 배차합니다")}"""
 
@@ -619,8 +735,10 @@ def build_district(metro_key, metro, slug, dist_name):
          "openingHoursSpecification": [{"@type": "OpeningHoursSpecification",
              "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
              "opens": "00:00", "closes": "23:59"}]},
-        {"@type": "Service", "name": f"{dist_name} 출장 마사지", "provider": {"@id": url("/#org")},
-         "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"}},
+        with_reviews(
+            {"@type": "Service", "name": f"{dist_name} 출장 마사지", "provider": {"@id": url("/#org")},
+             "areaServed": {"@type": "AdministrativeArea", "name": f"{metro_full} {dist_name}"}},
+            reviews),
         faq_block(faq),
     ]
     write(path, page(title, desc, path, body, blocks), priority="0.75")
@@ -638,6 +756,7 @@ def build_therapists_index():
 <p class="lead">한국·중국·태국·베트남·러시아·일본 6개 국적 관리사를 운영합니다. 선호를 말씀하시면 배차 상황에 맞춰 우선 배정합니다.</p>
 <div class="grid g3" style="margin-top:32px">{cards}</div>
 </section>
+{related_block("SERVICES", "코스별로 보기", services_links())}
 {cta_band()}"""
     title = f"관리사 안내 — 한국·중국·태국·베트남·러시아·일본 | {BRAND}"
     desc = f"{BRAND} 출장 마사지 관리사 안내. 6개 국적 관리사의 특징과 배정 방식을 정리했습니다. 예약 {PHONE}."
@@ -665,12 +784,18 @@ def build_therapist_detail(t):
 {note("02","강점과 잘 맞는 코스",[t["strength"], t["fit"]])}
 {note("03","배정·안전",[f"{t['name']} 관리사 선호를 말씀하시면 배차 상황에 맞춰 우선 배정하며, 가장 가까운 관리사를 우선해 도착 시간을 줄입니다.", f"안전·위생 기준은 자문 트레이너({TEAM[2]['name']}) 가이드라인을 따르며, 19세 미만은 이용할 수 없습니다."])}
 </section>
+{related_block("SERVICES", f"{t['name']} 관리사와 잘 맞는 코스", services_links())}
+{related_block("THERAPISTS", "다른 국적 관리사 보기", [it for it in therapists_links() if it[2] != f"/therapists/{t['slug']}/"])}
 {faq_section(faq, heading=f"{t['name']} 관리사 자주 묻는 질문")}
 {cta_band()}"""
     title = f"{t['name']} 관리사 출장 마사지 — 소통·강점·추천 코스 | {BRAND}"
     desc = f"{t['name']} 관리사 출장 마사지 안내. {t['strength']} {t['fit']} 서울·경기·인천·부산 예약 {PHONE}."
     path = f"/therapists/{t['slug']}/"
     blocks = [breadcrumb([("홈","/"),("관리사","/therapists/"),(t["name"]+" 관리사",path)]),
+              {"@type": "Service", "name": f"{t['name']} 관리사 출장 마사지",
+               "serviceType": "출장 마사지", "provider": {"@id": url("/#org")},
+               "areaServed": [v["name_full"] for v in REGIONS.values()],
+               "description": f"{t['strength']} {t['fit']}"},
               faq_block(faq), org_block()]
     write(path, page(title, desc, path, body, blocks), priority="0.7")
 
