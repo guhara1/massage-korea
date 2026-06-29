@@ -2,7 +2,7 @@
 """사이트 전역 설정. 도메인·브랜드·사업자 정보 단일 출처."""
 
 # 도메인: 커스텀 도메인. 변경 시 이 값만 교체하면 canonical/OG/sitemap 전체 반영.
-DOMAIN = "https://massagekorea.club"
+DOMAIN = "https://massage-korea.netlify.app"
 
 BRAND = "마사지KOREA"
 BRAND_EN = "Massage Korea"
