@@ -352,7 +352,7 @@ def build_home():
             home_reviews),
         faq_block(FAQ_HOME),
     ]
-    verify = ('<meta name="naver-site-verification" content="8434164622b0094ec6c9afbda868da5ac241e3d5">'
+    verify = ('<meta name="naver-site-verification" content="72655f78fe176365c9aa07bbfd61135446da75a4">'
               '<meta name="google-site-verification" content="TCklPAeaB9tdM03gH384AT9ZNxiSPSayw5azw0L4YmA">')
     write("/", page(title, desc, "/", body, blocks, extra_head=verify), priority="1.0", changefreq="daily")
 
