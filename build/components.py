@@ -445,3 +445,31 @@ def faq_block(qas):
             for q, a in qas
         ],
     }
+
+
+# ── 후기·평점 JSON-LD 헬퍼 ─────────────────────────────────
+def rating_block(ratings):
+    """ratings: list[int] → AggregateRating. 페이지에 노출된 후기 점수와 일치시킨다."""
+    avg = round(sum(ratings) / len(ratings), 1)
+    return {"@type": "AggregateRating", "ratingValue": avg,
+            "reviewCount": len(ratings), "bestRating": 5, "worstRating": 1}
+
+
+def review_block(author, rating, body):
+    """단일 Review 블록. author/rating/본문은 페이지에 표시된 카드와 동일하다."""
+    return {"@type": "Review",
+            "author": {"@type": "Person", "name": author},
+            "reviewRating": {"@type": "Rating", "ratingValue": rating,
+                             "bestRating": 5, "worstRating": 1},
+            "reviewBody": body}
+
+
+def with_reviews(node, reviews):
+    """서비스/비즈니스 노드에 aggregateRating + review[]를 부착해 반환.
+    reviews: [(author, rating, body), ...] — 표시 카드와 1:1 일치."""
+    if not reviews:
+        return node
+    node = dict(node)
+    node["aggregateRating"] = rating_block([r for _, r, _ in reviews])
+    node["review"] = [review_block(w, r, t) for w, r, t in reviews]
+    return node
